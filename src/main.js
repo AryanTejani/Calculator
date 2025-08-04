@@ -32,7 +32,7 @@ function updateDisplay() {
     // During input, show the full expression on top
     secondaryDisplay.textContent = expression;
     // And show the current number being typed on the bottom
-    const parts = expression.split(/[\+\−\×\÷\(\^]|mod/);
+    const parts = expression.split(/[\+\−\×\÷\(\^]|%/);
     const currentOperand = parts[parts.length - 1];
     // Show 0 if the operand is empty (e.g., right after an operator)
     mainDisplay.textContent = currentOperand || "0";
@@ -66,7 +66,7 @@ function inputNumber(num) {
 
   if (
     expression === "0" ||
-    (waitingForOperand && !expression.match(/[\+\−\×\÷\(\^]$|mod$/))
+    (waitingForOperand && !expression.match(/[\+\−\×\÷\(\^]$|%$/))
   ) {
     expression = num;
   } else {
@@ -84,16 +84,16 @@ function inputDecimal() {
     calculationDone = false;
   }
   // Check if the current number segment already has a decimal.
-  const parts = expression.split(/[\+\−\×\÷\(\)\^]|mod/);
+  const parts = expression.split(/[\+\−\×\÷\(\)\^]|%/);
   const currentNumber = parts[parts.length - 1];
   if (currentNumber.includes(".")) {
     return; // Do nothing if a decimal is already present.
   }
 
   // Use the same logic as inputNumber to decide whether to append or start a new number.
-  if (waitingForOperand && !expression.match(/[\+\−\×\÷\(\^]$|mod$/)) {
+  if (waitingForOperand && !expression.match(/[\+\−\×\÷\(\^]$|%$/)) {
     expression = "0.";
-  } else if (expression.match(/[\+\−\×\÷\(\^]$|mod$/) || expression === "0") {
+  } else if (expression.match(/[\+\−\×\÷\(\^]$|%$/) || expression === "0") {
     expression += "0.";
   } else {
     expression += ".";
@@ -282,7 +282,7 @@ function handleEquals() {
       .replace(/²/g, "**2")
       .replace(/π/g, "Math.PI")
       .replace(/e/g, "Math.E")
-      .replace(/mod/g, "%")
+      .replace(/%/g, "%")
       .replace(/√/g, "sqrt")
       .replace(/(\d+)!/g, "factorial($1)")
       .replace(/rand\(\)/g, "Math.random()")
@@ -362,7 +362,7 @@ function handleTrig(func) {
 
 // Handle modulo
 function handleModulo() {
-  expression += "mod";
+  expression += "%";
   waitingForOperand = true;
   updateDisplay();
 }

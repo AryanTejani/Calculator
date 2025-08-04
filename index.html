@@ -9,9 +9,10 @@
   <body>
     <div id="app">
       <div class="parent flex flex-col justify-center items-center bg-[#ffffff] min-h-screen">
-        <div class="console bg-[#f1f1f1] h-26 w-1/3 flex justify-end items-end">
-          0
-        </div>
+        <div class="console bg-[#f1f1f1] p-4 w-1/3 flex flex-col justify-end items-end h-32">
+    <div id="secondary-display" class="text-gray-500 text-xl h-1/3 text-right w-full truncate"></div>
+    <div id="main-display" class="text-black text-4xl font-bold h-2/3 text-right w-full">0</div>
+</div>
         <div class="first-row grid grid-cols-[1fr_1fr_2fr_1fr] h-20 w-1/3 bg-[#f1f1f1]">
           <button
             class="button text-black p-4 flex items-center justify-center border border-gray-300 hover:bg-gray-200"

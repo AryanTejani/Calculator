@@ -10,15 +10,34 @@ let secondFunction = false;
 let lastOperator = null;
 let openParentheses = 0;
 let scientificNotation = false;
-
+let calculationDone = false; 
 // Get display element
 const displayElement = document.querySelector(".console");
 
 // Update display to show expression
 function updateDisplay() {
-  displayElement.textContent = expression;
-}
+  const mainDisplay = document.querySelector("#main-display");
+  const secondaryDisplay = document.querySelector("#secondary-display");
 
+  if (calculationDone) {
+    // After '=', show the full expression on top
+    secondaryDisplay.textContent = expression + "=";
+    // And show the formatted result on the bottom
+    if (scientificNotation) {
+      mainDisplay.textContent = Number(result).toExponential(9);
+    } else {
+      mainDisplay.textContent = String(result);
+    }
+  } else {
+    // During input, show the full expression on top
+    secondaryDisplay.textContent = expression;
+    // And show the current number being typed on the bottom
+    const parts = expression.split(/[\+\−\×\÷\(\^]|mod/);
+    const currentOperand = parts[parts.length - 1];
+    // Show 0 if the operand is empty (e.g., right after an operator)
+    mainDisplay.textContent = currentOperand || "0";
+  }
+}
 // Clear display
 function clear() {
   expression = "0";
@@ -26,12 +45,18 @@ function clear() {
   waitingForOperand = false;
   lastOperator = null;
   openParentheses = 0;
+  calculationDone = false; // Reset the new flag
   updateDisplay();
 }
-
 // Handle number input
 function inputNumber(num) {
   // Add auto-multiplication after constants like π or e
+
+  if (calculationDone) {
+    expression = "0";
+    calculationDone = false;
+  }
+
   if (expression.endsWith("π") || expression.endsWith("e")) {
     expression += "×" + num;
     waitingForOperand = false;
@@ -41,7 +66,7 @@ function inputNumber(num) {
 
   if (
     expression === "0" ||
-    (waitingForOperand && !expression.match(/[\+\-\×\÷\(\^]$|mod$/))
+    (waitingForOperand && !expression.match(/[\+\−\×\÷\(\^]$|mod$/))
   ) {
     expression = num;
   } else {
@@ -54,17 +79,21 @@ function inputNumber(num) {
 // Handle decimal point
 // Handle decimal point
 function inputDecimal() {
+  if (calculationDone) {
+    expression = "0";
+    calculationDone = false;
+  }
   // Check if the current number segment already has a decimal.
-  const parts = expression.split(/[\+\-\×\÷\(\)\^]|mod/);
+  const parts = expression.split(/[\+\−\×\÷\(\)\^]|mod/);
   const currentNumber = parts[parts.length - 1];
   if (currentNumber.includes(".")) {
     return; // Do nothing if a decimal is already present.
   }
 
   // Use the same logic as inputNumber to decide whether to append or start a new number.
-  if (waitingForOperand && !expression.match(/[\+\-\×\÷\(\^]$|mod$/)) {
+  if (waitingForOperand && !expression.match(/[\+\−\×\÷\(\^]$|mod$/)) {
     expression = "0.";
-  } else if (expression.match(/[\+\-\×\÷\(\^]$|mod$/) || expression === "0") {
+  } else if (expression.match(/[\+\−\×\÷\(\^]$|mod$/) || expression === "0") {
     expression += "0.";
   } else {
     expression += ".";
@@ -75,8 +104,17 @@ function inputDecimal() {
 }
 // Handle basic operators
 function handleOperator(operator) {
+  if (calculationDone) {
+    // Start new calculation with the previous result, correctly formatted
+     if (scientificNotation) {
+        expression = Number(result).toExponential(9);
+    } else {
+        expression = String(result);
+    }
+    calculationDone = false;
+  }
   // If last character is an operator, replace it
-  if (expression.match(/[\+\-\×\÷]$/)) {
+  if (expression.match(/[\+\−\×\÷]$/)) {
     expression = expression.slice(0, -1) + operator;
   } else {
     expression += operator;
@@ -88,6 +126,10 @@ function handleOperator(operator) {
 
 // Handle functions that wrap the current value
 function wrapFunction(func, displayFunc) {
+  if (calculationDone) {
+    expression = "0";
+    calculationDone = false;
+  }
   // First, handle the special case where the expression is just '0'.
   if (expression === "0") {
     expression = displayFunc + "(";
@@ -205,87 +247,81 @@ feButton.addEventListener("click", () => {
 });
 
 function handleEquals() {
-    try {
-        // This part closes any open parentheses automatically.
-        while (openParentheses > 0) {
-            expression += ")";
-            openParentheses--;
-        }
-
-        // Defines safe functions to prevent bugs and handle DEG/RAD mode.
-        const sin = (val) => degreeMode ? Math.sin(val * Math.PI / 180) : Math.sin(val);
-        const cos = (val) => degreeMode ? Math.cos(val * Math.PI / 180) : Math.cos(val);
-        const tan = (val) => degreeMode ? Math.tan(val * Math.PI / 180) : Math.tan(val);
-        const asin = (val) => degreeMode ? Math.asin(val) * 180 / Math.PI : Math.asin(val);
-        const acos = (val) => degreeMode ? Math.acos(val) * 180 / Math.PI : Math.acos(val);
-        const atan = (val) => degreeMode ? Math.atan(val) * 180 / Math.PI : Math.atan(val);
-        const log = (val) => Math.log10(val);
-        const ln = (val) => Math.log(val);
-        const sqrt = (val) => Math.sqrt(val);
-        const factorial = (n) => {
-            if (n < 0 || n % 1 !== 0) return NaN;
-            if (n === 0 || n === 1) return 1;
-            let result = 1;
-            for (let i = 2; i <= n; i++) result *= i;
-            return result;
-        };
-
-        // Translates the display string into a JavaScript formula.
-        let evalExpression = expression
-            .replace(/×/g, '*')
-            .replace(/÷/g, '/')
-            .replace(/−/g, '-')
-            .replace(/\^/g, '**')
-            .replace(/²/g, '**2')
-            .replace(/π/g, 'Math.PI')
-            .replace(/e/g, 'Math.E')
-            .replace(/mod/g, '%')
-            .replace(/√/g, 'sqrt')
-            .replace(/(\d+)!/g, 'factorial($1)')
-            .replace(/rand\(\)/g, 'Math.random()')
-            .replace(/\|([^|]+)\|/g, 'Math.abs($1)')
-            .replace(/⌊([^⌋]+)⌋/g, 'Math.floor($1)')
-            .replace(/⌈([^⌉]+)⌉/g, 'Math.ceil($1)');
-
-        // Calculates the result.
-        result = eval(evalExpression);
-
-        // --- THIS IS THE HISTORY-SAVING BLOCK ---
-        // It is placed here, immediately after the result is calculated.
-        const calculationRecord = {
-            expression: expression, // Saves the original expression.
-            result: result      // Saves the result.
-        };
-        calculationHistory.push(calculationRecord);
-        if (calculationHistory.length > 20) {
-            calculationHistory.shift();
-        }
-        // --- END OF HISTORY-SAVING BLOCK ---
-
-        // Handles errors like division by zero.
-        if (!Number.isFinite(result)) {
-            throw new Error("Invalid calculation");
-        }
-
-        // Formats the result for the display based on F-E mode.
-        if (scientificNotation) {
-            expression = Number(result).toExponential(9);
-        } else {
-            expression = String(result);
-        }
-
-        // Sets up the calculator for the next input.
-        waitingForOperand = true;
-        updateDisplay();
-
-    } catch (error) {
-        // If anything goes wrong, displays "Error".
-        expression = 'Error';
-        updateDisplay();
-        setTimeout(() => {
-            clear();
-        }, 1500);
+  try {
+    // This part closes any open parentheses automatically.
+    while (openParentheses > 0) {
+      expression += ")";
+      openParentheses--;
     }
+
+    // (The safe functions like sin, cos, etc. remain the same)
+    const sin = (val) => degreeMode ? Math.sin(val * Math.PI / 180) : Math.sin(val);
+    const cos = (val) => degreeMode ? Math.cos(val * Math.PI / 180) : Math.cos(val);
+    const tan = (val) => degreeMode ? Math.tan(val * Math.PI / 180) : Math.tan(val);
+    const asin = (val) => degreeMode ? Math.asin(val) * 180 / Math.PI : Math.asin(val);
+    const acos = (val) => degreeMode ? Math.acos(val) * 180 / Math.PI : Math.acos(val);
+    const atan = (val) => degreeMode ? Math.atan(val) * 180 / Math.PI : Math.atan(val);
+    const log = (val) => Math.log10(val);
+    const ln = (val) => Math.log(val);
+    const sqrt = (val) => Math.sqrt(val);
+    const factorial = (n) => {
+        if (n < 0 || n % 1 !== 0) return NaN;
+        if (n === 0 || n === 1) return 1;
+        let result = 1;
+        for (let i = 2; i <= n; i++) result *= i;
+        return result;
+    };
+
+
+    // Translates the display string into a JavaScript formula.
+    let evalExpression = expression
+      .replace(/×/g, "*")
+      .replace(/÷/g, "/")
+      .replace(/−/g, "-")
+      .replace(/\^/g, "**")
+      .replace(/²/g, "**2")
+      .replace(/π/g, "Math.PI")
+      .replace(/e/g, "Math.E")
+      .replace(/mod/g, "%")
+      .replace(/√/g, "sqrt")
+      .replace(/(\d+)!/g, "factorial($1)")
+      .replace(/rand\(\)/g, "Math.random()")
+      .replace(/\|([^|]+)\|/g, "Math.abs($1)")
+      .replace(/⌊([^⌋]+)⌋/g, "Math.floor($1)")
+      .replace(/⌈([^⌉]+)⌉/g, "Math.ceil($1)");
+
+    // Calculates the result.
+    result = eval(evalExpression);
+
+    // Saves the calculation to history.
+    const calculationRecord = {
+      expression: expression,
+      result: result,
+    };
+    calculationHistory.push(calculationRecord);
+    if (calculationHistory.length > 20) {
+      calculationHistory.shift();
+    }
+
+    // Handles errors like division by zero.
+    if (!Number.isFinite(result)) {
+      throw new Error("Invalid calculation");
+    }
+
+    // Set the flag and let updateDisplay do the work
+    calculationDone = true;
+    waitingForOperand = true;
+    updateDisplay();
+
+  } catch (error) {
+    // If anything goes wrong, displays "Error".
+    expression = "Error";
+    calculationDone = false; // Reset flag on error
+    updateDisplay();
+    setTimeout(() => {
+      clear();
+    }, 1500);
+  }
 }
 // Handle memory functions
 function handleMemory(operation) {

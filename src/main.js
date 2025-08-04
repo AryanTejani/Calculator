@@ -1,204 +1,218 @@
-import "./style.css"
+import "./style.css";
 
 // Calculator state
-let expression = '0';
-let result = '0';
+let expression = "0";
+let result = "0";
 let waitingForOperand = false;
 let memory = 0;
 let degreeMode = true;
 let secondFunction = false;
 let lastOperator = null;
 let openParentheses = 0;
+let scientificNotation = false;
 
 // Get display element
-const displayElement = document.querySelector('.console');
+const displayElement = document.querySelector(".console");
 
 // Update display to show expression
 function updateDisplay() {
-    displayElement.textContent = expression;
+  displayElement.textContent = expression;
 }
 
 // Clear display
 function clear() {
-    expression = '0';
-    result = '0';
-    waitingForOperand = false;
-    lastOperator = null;
-    openParentheses = 0;
-    updateDisplay();
+  expression = "0";
+  result = "0";
+  waitingForOperand = false;
+  lastOperator = null;
+  openParentheses = 0;
+  updateDisplay();
 }
 
 // Handle number input
 function inputNumber(num) {
-    // This condition checks if we should start a brand new expression.
-    // It's true if the display is "0" OR if a calculation was just completed (like after hitting "=").
-    // We detect the "after equals" state because `waitingForOperand` is true, but the expression
-    // does NOT end with an operator that would expect another number.
-    if (expression === '0' || (waitingForOperand && !expression.match(/[\+\-\×\÷\(\^]$|mod$/))) {
-        expression = num;
-    } else {
-        // In all other cases (like after '5+' or '√('), we append the number.
-        expression += num;
-    }
-
-    // Any time a number is entered, we are now building an operand, so we reset the flag.
+  // Add auto-multiplication after constants like π or e
+  if (expression.endsWith("π") || expression.endsWith("e")) {
+    expression += "×" + num;
     waitingForOperand = false;
     updateDisplay();
+    return;
+  }
+
+  if (
+    expression === "0" ||
+    (waitingForOperand && !expression.match(/[\+\-\×\÷\(\^]$|mod$/))
+  ) {
+    expression = num;
+  } else {
+    expression += num;
+  }
+  waitingForOperand = false;
+  updateDisplay();
 }
 
 // Handle decimal point
 // Handle decimal point
 function inputDecimal() {
-    // Check if the current number segment already has a decimal.
-    const parts = expression.split(/[\+\-\×\÷\(\)\^]|mod/);
-    const currentNumber = parts[parts.length - 1];
-    if (currentNumber.includes('.')) {
-        return; // Do nothing if a decimal is already present.
-    }
+  // Check if the current number segment already has a decimal.
+  const parts = expression.split(/[\+\-\×\÷\(\)\^]|mod/);
+  const currentNumber = parts[parts.length - 1];
+  if (currentNumber.includes(".")) {
+    return; // Do nothing if a decimal is already present.
+  }
 
-    // Use the same logic as inputNumber to decide whether to append or start a new number.
-    if (waitingForOperand && !expression.match(/[\+\-\×\÷\(\^]$|mod$/)) {
-        expression = '0.';
-    } else if (expression.match(/[\+\-\×\÷\(\^]$|mod$/) || expression === '0') {
-        expression += '0.';
-    }
-    else {
-        expression += '.';
-    }
+  // Use the same logic as inputNumber to decide whether to append or start a new number.
+  if (waitingForOperand && !expression.match(/[\+\-\×\÷\(\^]$|mod$/)) {
+    expression = "0.";
+  } else if (expression.match(/[\+\-\×\÷\(\^]$|mod$/) || expression === "0") {
+    expression += "0.";
+  } else {
+    expression += ".";
+  }
 
-    waitingForOperand = false;
-    updateDisplay();
+  waitingForOperand = false;
+  updateDisplay();
 }
 // Handle basic operators
 function handleOperator(operator) {
-    // If last character is an operator, replace it
-    if (expression.match(/[\+\-\×\÷]$/)) {
-        expression = expression.slice(0, -1) + operator;
-    } else {
-        expression += operator;
-    }
-    // This MUST be true. After an operator, you are waiting for the next operand.
-    waitingForOperand = true;
-    updateDisplay();
+  // If last character is an operator, replace it
+  if (expression.match(/[\+\-\×\÷]$/)) {
+    expression = expression.slice(0, -1) + operator;
+  } else {
+    expression += operator;
+  }
+  // This MUST be true. After an operator, you are waiting for the next operand.
+  waitingForOperand = true;
+  updateDisplay();
 }
 
 // Handle functions that wrap the current value
 function wrapFunction(func, displayFunc) {
-    // First, handle the special case where the expression is just '0'.
-    if (expression === '0') {
-        expression = displayFunc + '(';
-    }
-    // THEN, check if we need to imply multiplication (e.g., after a number like '5').
-    else if (expression.match(/[\d\)]$/)) {
-        expression += '×' + displayFunc + '(';
-    }
-    // For all other cases (like after an operator '+').
-    else {
-        expression += displayFunc + '(';
-    }
-    openParentheses++;
-    waitingForOperand = false;
-    updateDisplay();
+  // First, handle the special case where the expression is just '0'.
+  if (expression === "0") {
+    expression = displayFunc + "(";
+  }
+  // THEN, check if we need to imply multiplication (e.g., after a number like '5').
+  else if (expression.match(/[\d\)]$/)) {
+    expression += "×" + displayFunc + "(";
+  }
+  // For all other cases (like after an operator '+').
+  else {
+    expression += displayFunc + "(";
+  }
+  openParentheses++;
+  waitingForOperand = false;
+  updateDisplay();
 }
 
 // Handle power functions
 function handlePower(type) {
-    switch(type) {
-        case 'square':
-            expression += '²';
-            break;
-        case 'power':
-            expression += '^';
-            waitingForOperand = true;
-            break;
-        case 'power10':
-            wrapFunction('power10', '10^');
-            return;
-    }
-    updateDisplay();
+  switch (type) {
+    case "square":
+      expression += "²";
+      break;
+    case "power":
+      expression += "^";
+      waitingForOperand = true;
+      break;
+    case "power10":
+      wrapFunction("power10", "10^");
+      return;
+  }
+  updateDisplay();
 }
 
 // Handle scientific functions
 function handleScientificFunction(func) {
-    switch (func) {
-        case 'sqrt':
-            wrapFunction('sqrt', '√');
-            break;
-        case 'log':
-            wrapFunction('log', 'log');
-            break;
-        case 'ln':
-            wrapFunction('ln', 'ln');
-            break;
-        case 'exp':
-            wrapFunction('exp', 'e^');
-            break;
-        case 'reciprocal':
-            wrapFunction('reciprocal', '1/');
-            break;
-        case 'abs':
-            wrapFunction('abs', '|', '|');
-            break;
-        case 'factorial':
-            expression += '!';
-            updateDisplay();
-            break;
-        case 'negate':
-            if (expression === '0') {
-                expression = '-';
-            } else if (expression.startsWith('-')) {
-                expression = expression.substring(1);
-            } else {
-                expression = '-' + expression;
-            }
-            updateDisplay();
-            break;
-        case 'floor':
-            wrapFunction('floor', '⌊', '⌋');
-            break;
-        case 'ceil':
-            wrapFunction('ceil', '⌈', '⌉');
-            break;
-        case 'rand':
-            expression = 'rand()';
-            updateDisplay();
-            break;
-    }
+  switch (func) {
+    case "sqrt":
+      wrapFunction("sqrt", "√");
+      break;
+    case "log":
+      wrapFunction("log", "log");
+      break;
+    case "ln":
+      wrapFunction("ln", "ln");
+      break;
+    case "exp":
+      wrapFunction("exp", "e^");
+      break;
+    case "reciprocal":
+      wrapFunction("reciprocal", "1/");
+      break;
+    case "abs":
+      // Handle these special cases directly for clarity.
+      expression = "|" + expression + "|";
+      updateDisplay();
+      break;
+    case "floor":
+      expression = "⌊" + expression + "⌋";
+      updateDisplay();
+      break;
+    case "ceil":
+      expression = "⌈" + expression + "⌉";
+      updateDisplay();
+      break;
+    case "factorial":
+      expression += "!";
+      updateDisplay();
+      break;
+    case "negate":
+      if (expression === "0") {
+        expression = "-";
+      } else if (expression.startsWith("-")) {
+        expression = expression.substring(1);
+      } else {
+        expression = "-" + expression;
+      }
+      updateDisplay();
+      break;
+    case "rand":
+      if (expression === "0" || waitingForOperand) {
+        expression = "rand()";
+      } else {
+        expression += "×rand()";
+      }
+      updateDisplay();
+      break;
+  }
 }
 
 // Handle parentheses
 function handleParenthesis(type) {
-    if (type === '(') {
-        if (expression === '0') {
-            expression = '(';
-        } else if (expression.match(/[\d\)]$/)) {
-            expression += '×(';
-        } else {
-            expression += '(';
-        }
-        openParentheses++;
-    } else if (type === ')' && openParentheses > 0) {
-        expression += ')';
-        openParentheses--;
+  if (type === "(") {
+    if (expression === "0") {
+      expression = "(";
+    } else if (expression.match(/[\d\)]$/)) {
+      expression += "×(";
+    } else {
+      expression += "(";
     }
-    updateDisplay();
+    openParentheses++;
+  } else if (type === ")" && openParentheses > 0) {
+    expression += ")";
+    openParentheses--;
+  }
+  updateDisplay();
 }
 
-// Handle equals - evaluate the expression
-// Handle equals - evaluate the expression
-// Handle equals - evaluate the expression
+const feButton = document.querySelector(".first-row > .button:nth-child(2)");
+feButton.addEventListener("click", () => {
+  scientificNotation = !scientificNotation;
+  // Add a visual indicator to the button
+  feButton.style.backgroundColor = scientificNotation ? "#a0aec0" : ""; // A gray color when active
+  feButton.style.color = scientificNotation ? "white" : "black";
+});
+
 function handleEquals() {
     try {
-        // Close any open parentheses automatically
+        // This part closes any open parentheses automatically.
         while (openParentheses > 0) {
-            expression += ')';
+            expression += ")";
             openParentheses--;
         }
 
-        // --- Start of The Fix ---
-
-        // Define safe functions that will be available to eval().
-        // This is much safer than string replacement for handling DEG/RAD.
+        // Defines safe functions to prevent bugs and handle DEG/RAD mode.
         const sin = (val) => degreeMode ? Math.sin(val * Math.PI / 180) : Math.sin(val);
         const cos = (val) => degreeMode ? Math.cos(val * Math.PI / 180) : Math.cos(val);
         const tan = (val) => degreeMode ? Math.tan(val * Math.PI / 180) : Math.tan(val);
@@ -216,17 +230,16 @@ function handleEquals() {
             return result;
         };
 
-        // Convert the display string into a valid JavaScript expression.
+        // Translates the display string into a JavaScript formula.
         let evalExpression = expression
             .replace(/×/g, '*')
             .replace(/÷/g, '/')
-            .replace(/−/g, '-') // Important: replaces visual minus with code minus
+            .replace(/−/g, '-')
             .replace(/\^/g, '**')
             .replace(/²/g, '**2')
             .replace(/π/g, 'Math.PI')
             .replace(/e/g, 'Math.E')
             .replace(/mod/g, '%')
-            // Now we replace the visual symbols with our safe function names
             .replace(/√/g, 'sqrt')
             .replace(/(\d+)!/g, 'factorial($1)')
             .replace(/rand\(\)/g, 'Math.random()')
@@ -234,20 +247,39 @@ function handleEquals() {
             .replace(/⌊([^⌋]+)⌋/g, 'Math.floor($1)')
             .replace(/⌈([^⌉]+)⌉/g, 'Math.ceil($1)');
 
-        // --- End of The Fix ---
-
-        // Evaluate the cleaned-up expression
+        // Calculates the result.
         result = eval(evalExpression);
 
-        // Handle cases like 1/0 that result in Infinity
+        // --- THIS IS THE HISTORY-SAVING BLOCK ---
+        // It is placed here, immediately after the result is calculated.
+        const calculationRecord = {
+            expression: expression, // Saves the original expression.
+            result: result      // Saves the result.
+        };
+        calculationHistory.push(calculationRecord);
+        if (calculationHistory.length > 20) {
+            calculationHistory.shift();
+        }
+        // --- END OF HISTORY-SAVING BLOCK ---
+
+        // Handles errors like division by zero.
         if (!Number.isFinite(result)) {
             throw new Error("Invalid calculation");
         }
 
-        expression = String(result);
+        // Formats the result for the display based on F-E mode.
+        if (scientificNotation) {
+            expression = Number(result).toExponential(9);
+        } else {
+            expression = String(result);
+        }
+
+        // Sets up the calculator for the next input.
         waitingForOperand = true;
         updateDisplay();
+
     } catch (error) {
+        // If anything goes wrong, displays "Error".
         expression = 'Error';
         updateDisplay();
         setTimeout(() => {
@@ -257,163 +289,287 @@ function handleEquals() {
 }
 // Handle memory functions
 function handleMemory(operation) {
-    try {
-        const currentValue = parseFloat(eval(expression.replace(/×/g, '*').replace(/÷/g, '/')));
-        
-        switch (operation) {
-            case 'MC':
-                memory = 0;
-                break;
-            case 'MR':
-                expression = String(memory);
-                waitingForOperand = true;
-                updateDisplay();
-                break;
-            case 'M+':
-                memory += currentValue;
-                break;
-            case 'M-':
-                memory -= currentValue;
-                break;
-            case 'MS':
-                memory = currentValue;
-                break;
-        }
-    } catch (error) {
-        // Invalid expression, ignore
+  try {
+    const currentValue = parseFloat(
+      eval(expression.replace(/×/g, "*").replace(/÷/g, "/"))
+    );
+
+    switch (operation) {
+      case "MC":
+        memory = 0;
+        break;
+      case "MR":
+        expression = String(memory);
+        waitingForOperand = true;
+        updateDisplay();
+        break;
+      case "M+":
+        memory += currentValue;
+        break;
+      case "M-":
+        memory -= currentValue;
+        break;
+      case "MS":
+        memory = currentValue;
+        break;
     }
+  } catch (error) {
+    // Invalid expression, ignore
+  }
 }
 
 // Handle trigonometric functions
 function handleTrig(func) {
-    const displayFunc = secondFunction ? 'a' + func : func;
-    wrapFunction(func, displayFunc);
+  const displayFunc = secondFunction ? "a" + func : func;
+  wrapFunction(func, displayFunc);
 }
 
 // Handle modulo
 function handleModulo() {
-    expression += 'mod';
-    waitingForOperand = true;
-    updateDisplay();
+  expression += "mod";
+  waitingForOperand = true;
+  updateDisplay();
 }
 
 // Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Number buttons
-    const numberButtons = document.querySelectorAll('.seventh-row > .button:nth-child(2), .seventh-row > .button:nth-child(3), .seventh-row > .button:nth-child(4), .eightth-row > .button:nth-child(2), .eightth-row > .button:nth-child(3), .eightth-row > .button:nth-child(4), .nineth-row > .button:nth-child(2), .nineth-row > .button:nth-child(3), .nineth-row > .button:nth-child(4), .tenth-row > .button:nth-child(3)');
-    const numbers = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0'];
-    numberButtons.forEach((button, index) => {
-        button.addEventListener('click', () => inputNumber(numbers[index]));
+document.addEventListener("DOMContentLoaded", function () {
+  // Number buttons
+  const numberButtons = document.querySelectorAll(
+    ".seventh-row > .button:nth-child(2), .seventh-row > .button:nth-child(3), .seventh-row > .button:nth-child(4), .eightth-row > .button:nth-child(2), .eightth-row > .button:nth-child(3), .eightth-row > .button:nth-child(4), .nineth-row > .button:nth-child(2), .nineth-row > .button:nth-child(3), .nineth-row > .button:nth-child(4), .tenth-row > .button:nth-child(3)"
+  );
+  const numbers = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0"];
+  numberButtons.forEach((button, index) => {
+    button.addEventListener("click", () => inputNumber(numbers[index]));
+  });
+
+  // Decimal point
+  document
+    .querySelector(".tenth-row > .button:nth-child(4)")
+    .addEventListener("click", inputDecimal);
+
+  // Clear button
+  document
+    .querySelector(".fourth-row > .button:nth-child(4)")
+    .addEventListener("click", clear);
+
+  // Basic operators
+  document
+    .querySelector(".seventh-row > .button:nth-child(5)")
+    .addEventListener("click", () => handleOperator("×"));
+  document
+    .querySelector(".eightth-row > .button:nth-child(5)")
+    .addEventListener("click", () => handleOperator("−"));
+  document
+    .querySelector(".nineth-row > .button:nth-child(5)")
+    .addEventListener("click", () => handleOperator("+"));
+  document
+    .querySelector(".sixth-row > .button:nth-child(5)")
+    .addEventListener("click", () => handleOperator("÷"));
+
+  // Equals
+  document
+    .querySelector(".tenth-row > .button:nth-child(5)")
+    .addEventListener("click", handleEquals);
+
+  // Scientific functions
+  document
+    .querySelector(".fifth-row > .button:nth-child(1)")
+    .addEventListener("click", () => handlePower("square"));
+  document
+    .querySelector(".fifth-row > .button:nth-child(2)")
+    .addEventListener("click", () => handleScientificFunction("reciprocal"));
+  document
+    .querySelector(".fifth-row > .button:nth-child(3)")
+    .addEventListener("click", () => handleScientificFunction("abs"));
+  document
+    .querySelector(".fifth-row > .button:nth-child(4)")
+    .addEventListener("click", () => handleScientificFunction("exp"));
+  document
+    .querySelector(".fifth-row > .button:nth-child(5)")
+    .addEventListener("click", () => handleModulo());
+
+  document
+    .querySelector(".sixth-row > .button:nth-child(1)")
+    .addEventListener("click", () => handleScientificFunction("sqrt"));
+  document
+    .querySelector(".sixth-row > .button:nth-child(2)")
+    .addEventListener("click", () => handleParenthesis("("));
+  document
+    .querySelector(".sixth-row > .button:nth-child(3)")
+    .addEventListener("click", () => handleParenthesis(")"));
+  document
+    .querySelector(".sixth-row > .button:nth-child(4)")
+    .addEventListener("click", () => handleScientificFunction("factorial"));
+
+  document
+    .querySelector(".seventh-row > .button:nth-child(1)")
+    .addEventListener("click", () => handlePower("power"));
+  document
+    .querySelector(".eightth-row > .button:nth-child(1)")
+    .addEventListener("click", () => handlePower("power10"));
+  document
+    .querySelector(".nineth-row > .button:nth-child(1)")
+    .addEventListener("click", () => handleScientificFunction("log"));
+  document
+    .querySelector(".tenth-row > .button:nth-child(1)")
+    .addEventListener("click", () => handleScientificFunction("ln"));
+  document
+    .querySelector(".tenth-row > .button:nth-child(2)")
+    .addEventListener("click", () => handleScientificFunction("negate"));
+
+  // Memory buttons
+  document
+    .querySelector(".second-row > .button:nth-child(1)")
+    .addEventListener("click", () => handleMemory("MC"));
+  document
+    .querySelector(".second-row > .button:nth-child(2)")
+    .addEventListener("click", () => handleMemory("MR"));
+  document
+    .querySelector(".second-row > .button:nth-child(3)")
+    .addEventListener("click", () => handleMemory("M+"));
+  document
+    .querySelector(".second-row > .button:nth-child(4)")
+    .addEventListener("click", () => handleMemory("M-"));
+  document
+    .querySelector(".second-row > .button:nth-child(5)")
+    .addEventListener("click", () => handleMemory("MS"));
+
+  // 2nd function toggle
+  document
+    .querySelector(".fourth-row > .button:nth-child(1)")
+    .addEventListener("click", () => {
+      secondFunction = !secondFunction;
+      const btn = document.querySelector(".fourth-row > .button:nth-child(1)");
+      btn.style.backgroundColor = secondFunction ? "#3b82f6" : "";
+      btn.style.color = secondFunction ? "white" : "black";
     });
 
-    // Decimal point
-    document.querySelector('.tenth-row > .button:nth-child(4)').addEventListener('click', inputDecimal);
-
-    // Clear button
-    document.querySelector('.fourth-row > .button:nth-child(4)').addEventListener('click', clear);
-
-    // Basic operators
-    document.querySelector('.seventh-row > .button:nth-child(5)').addEventListener('click', () => handleOperator('×'));
-    document.querySelector('.eightth-row > .button:nth-child(5)').addEventListener('click', () => handleOperator('−'));
-    document.querySelector('.nineth-row > .button:nth-child(5)').addEventListener('click', () => handleOperator('+'));
-    document.querySelector('.sixth-row > .button:nth-child(5)').addEventListener('click', () => handleOperator('÷'));
-
-    // Equals
-    document.querySelector('.tenth-row > .button:nth-child(5)').addEventListener('click', handleEquals);
-
-    // Scientific functions
-    document.querySelector('.fifth-row > .button:nth-child(1)').addEventListener('click', () => handlePower('square'));
-    document.querySelector('.fifth-row > .button:nth-child(2)').addEventListener('click', () => handleScientificFunction('reciprocal'));
-    document.querySelector('.fifth-row > .button:nth-child(3)').addEventListener('click', () => handleScientificFunction('abs'));
-    document.querySelector('.fifth-row > .button:nth-child(4)').addEventListener('click', () => handleScientificFunction('exp'));
-    document.querySelector('.fifth-row > .button:nth-child(5)').addEventListener('click', () => handleModulo());
-    
-    document.querySelector('.sixth-row > .button:nth-child(1)').addEventListener('click', () => handleScientificFunction('sqrt'));
-    document.querySelector('.sixth-row > .button:nth-child(2)').addEventListener('click', () => handleParenthesis('('));
-    document.querySelector('.sixth-row > .button:nth-child(3)').addEventListener('click', () => handleParenthesis(')'));
-    document.querySelector('.sixth-row > .button:nth-child(4)').addEventListener('click', () => handleScientificFunction('factorial'));
-    
-    document.querySelector('.seventh-row > .button:nth-child(1)').addEventListener('click', () => handlePower('power'));
-    document.querySelector('.eightth-row > .button:nth-child(1)').addEventListener('click', () => handlePower('power10'));
-    document.querySelector('.nineth-row > .button:nth-child(1)').addEventListener('click', () => handleScientificFunction('log'));
-    document.querySelector('.tenth-row > .button:nth-child(1)').addEventListener('click', () => handleScientificFunction('ln'));
-    document.querySelector('.tenth-row > .button:nth-child(2)').addEventListener('click', () => handleScientificFunction('negate'));
-
-    // Memory buttons
-    document.querySelector('.second-row > .button:nth-child(1)').addEventListener('click', () => handleMemory('MC'));
-    document.querySelector('.second-row > .button:nth-child(2)').addEventListener('click', () => handleMemory('MR'));
-    document.querySelector('.second-row > .button:nth-child(3)').addEventListener('click', () => handleMemory('M+'));
-    document.querySelector('.second-row > .button:nth-child(4)').addEventListener('click', () => handleMemory('M-'));
-    document.querySelector('.second-row > .button:nth-child(5)').addEventListener('click', () => handleMemory('MS'));
-
-    // 2nd function toggle
-    document.querySelector('.fourth-row > .button:nth-child(1)').addEventListener('click', () => {
-        secondFunction = !secondFunction;
-        const btn = document.querySelector('.fourth-row > .button:nth-child(1)');
-        btn.style.backgroundColor = secondFunction ? '#3b82f6' : '';
-        btn.style.color = secondFunction ? 'white' : 'black';
+  // DEG/RAD toggle
+  document
+    .querySelector(".first-row > .button:nth-child(1)")
+    .addEventListener("click", () => {
+      degreeMode = !degreeMode;
+      document.querySelector(".first-row > .button:nth-child(1)").textContent =
+        degreeMode ? "DEG" : "RAD";
     });
 
-    // DEG/RAD toggle
-    document.querySelector('.first-row > .button:nth-child(1)').addEventListener('click', () => {
-        degreeMode = !degreeMode;
-        document.querySelector('.first-row > .button:nth-child(1)').textContent = degreeMode ? 'DEG' : 'RAD';
+  // Pi button
+  document
+    .querySelector(".fourth-row > .button:nth-child(2)")
+    .addEventListener("click", () => {
+      if (expression === "0") {
+        expression = "π";
+      } else if (expression.match(/[\d\)]$/)) {
+        expression += "×π";
+      } else {
+        expression += "π";
+      }
+      updateDisplay();
     });
 
-    // Pi button
-    document.querySelector('.fourth-row > .button:nth-child(2)').addEventListener('click', () => {
-        if (expression === '0') {
-            expression = 'π';
-        } else if (expression.match(/[\d\)]$/)) {
-            expression += '×π';
-        } else {
-            expression += 'π';
-        }
-        updateDisplay();
-    });
+  // Special functions from the dropdown grid
+  const specialFunctions = document.querySelectorAll(
+    ".fourth-row .bg-sky-500 .button"
+  );
+  specialFunctions[0].addEventListener("click", () =>
+    handleScientificFunction("abs")
+  );
+  specialFunctions[1].addEventListener("click", () =>
+    handleScientificFunction("floor")
+  );
+  specialFunctions[2].addEventListener("click", () =>
+    handleScientificFunction("ceil")
+  );
+  specialFunctions[3].addEventListener("click", () =>
+    handleScientificFunction("rand")
+  );
+  // The dms and deg buttons are not assigned functionality yet.
 
-    // Special functions from the dropdown grid
-    const specialFunctions = document.querySelectorAll('.fourth-row .button');
-    specialFunctions[0].addEventListener('click', () => handleScientificFunction('abs'));
-    specialFunctions[1].addEventListener('click', () => handleScientificFunction('floor'));
-    specialFunctions[2].addEventListener('click', () => handleScientificFunction('ceil'));
-    specialFunctions[3].addEventListener('click', () => handleScientificFunction('rand'));
+  // Trigonometry dropdown
+  document
+    .querySelector(".third-row > .button:nth-child(1)")
+    .addEventListener("click", function (e) {
+      e.stopPropagation();
 
-    // Trigonometry dropdown
-    document.querySelector('.third-row > .button:nth-child(1)').addEventListener('click', function(e) {
-        e.stopPropagation();
-        
-        // Create dropdown for trig functions
-        const trigFunctions = ['sin', 'cos', 'tan'];
-        const dropdown = document.createElement('div');
-        dropdown.className = 'absolute bg-white border border-gray-300 shadow-lg z-50';
-        dropdown.style.top = '100%';
-        dropdown.style.left = '0';
-        
-        trigFunctions.forEach(func => {
-            const option = document.createElement('div');
-            option.className = 'p-2 hover:bg-gray-200 cursor-pointer';
-            option.textContent = secondFunction ? `a${func}` : func;
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                handleTrig(func);
-                dropdown.remove();
-            });
-            dropdown.appendChild(option);
+      // Create dropdown for trig functions
+      const trigFunctions = ["sin", "cos", "tan"];
+      const dropdown = document.createElement("div");
+      dropdown.className =
+        "absolute bg-white border border-gray-300 shadow-lg z-50";
+      dropdown.style.top = "100%";
+      dropdown.style.left = "0";
+
+      trigFunctions.forEach((func) => {
+        const option = document.createElement("div");
+        option.className = "p-2 hover:bg-gray-200 cursor-pointer";
+        option.textContent = secondFunction ? `a${func}` : func;
+        option.addEventListener("click", (e) => {
+          e.stopPropagation();
+          handleTrig(func);
+          dropdown.remove();
         });
-        
-        this.style.position = 'relative';
-        this.appendChild(dropdown);
-        
-        // Remove dropdown when clicking outside
-        setTimeout(() => {
-            document.addEventListener('click', function removeDropdown(e) {
-                dropdown.remove();
-                document.removeEventListener('click', removeDropdown);
-            });
-        }, 0);
+        dropdown.appendChild(option);
+      });
+
+      this.style.position = "relative";
+      this.appendChild(dropdown);
+
+      // Remove dropdown when clicking outside
+      setTimeout(() => {
+        document.addEventListener("click", function removeDropdown(e) {
+          dropdown.remove();
+          document.removeEventListener("click", removeDropdown);
+        });
+      }, 0);
     });
 
-    // Initialize display
-    updateDisplay();
+  // Initialize display
+  updateDisplay();
 });
+
+// --- START: HISTORY FEATURE CODE ---
+
+// You only need one variable for history
+let calculationHistory = [];
+
+const historyBtn = document.querySelector("#history-btn");
+const historyPanel = document.querySelector("#history-panel");
+const historyList = document.querySelector("#history-list");
+const clearHistoryBtn = document.querySelector("#clear-history-btn");
+
+// Function to render the history items onto the panel
+function renderHistory() {
+  historyList.innerHTML = ""; // Clear the current list
+
+  // Use the new, safe variable name here
+  if (calculationHistory.length === 0) {
+    historyList.innerHTML =
+      '<p class="text-gray-500 text-sm">No history yet.</p>';
+    return;
+  }
+  // And here
+  calculationHistory.forEach((item) => {
+    const historyItem = document.createElement("div");
+    historyItem.className = "bg-gray-100 p-2 rounded";
+    historyItem.innerHTML = `
+                <div class="text-xs text-gray-600">${item.expression}</div>
+                <div class="font-bold text-right">${item.result}</div>
+            `;
+    historyList.appendChild(historyItem);
+  });
+}
+
+// Listener to show/hide the history panel
+historyBtn.addEventListener("click", () => {
+  renderHistory(); // This function now correctly uses calculationHistory
+  historyPanel.classList.toggle("hidden");
+});
+
+// Listener to clear the history
+clearHistoryBtn.addEventListener("click", () => {
+  // And finally, use the new variable name here
+  calculationHistory = [];
+  renderHistory();
+});
+
+// --- END: HISTORY FEATURE CODE ---

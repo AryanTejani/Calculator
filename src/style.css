@@ -4,3 +4,7 @@
 }
 
 @import "tailwindcss/index.css";
+
+button{
+  @apply cursor-pointer
+}

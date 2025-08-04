@@ -51,7 +51,6 @@ function clear() {
 // Handle number input
 function inputNumber(num) {
   // Add auto-multiplication after constants like π or e
-
   if (calculationDone) {
     expression = "0";
     calculationDone = false;
@@ -76,7 +75,6 @@ function inputNumber(num) {
   updateDisplay();
 }
 
-// Handle decimal point
 // Handle decimal point
 function inputDecimal() {
   if (calculationDone) {
